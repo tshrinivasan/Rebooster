@@ -1,5 +1,6 @@
 import time
 from urllib.parse import urlparse
+import sys
 
 from mastodon import Mastodon
 
@@ -10,9 +11,9 @@ except ModuleNotFoundError:
     import sys; sys.exit()
 
 # Constants
-TIME_TO_SLEEP = 1800  # 1800 seconds = 30 minutes
+TIME_TO_SLEEP = 3600  # 3600 seconds = 60 minutes
 CLIENT_CRED_FILE = '{}_clientcred.secret'.format(config.CLIENT_NAME.lower())
-TIMELINE_DEPTH_LIMIT = 2  # How many of the latest statuses to pull per tag. 
+TIMELINE_DEPTH_LIMIT = 100  # How many of the latest statuses to pull per tag. 
 
 
 def run():
@@ -20,22 +21,24 @@ def run():
     print("Initializing {} Bot".format(config.CLIENT_NAME))
     print("=================" + "="*len(config.CLIENT_NAME))
     print(" > Connecting to {}".format(config.API_BASE_URL))
-    setup_client_cred_file()
+#    setup_client_cred_file()
 
     # Create client
     mastodon = Mastodon(
-        client_id = CLIENT_CRED_FILE,
+#        client_id = CLIENT_CRED_FILE,
+        access_token = config.ACCESS_TOKEN,
         api_base_url = config.API_BASE_URL,
+        version_check_mode = "none",
     )   
 
     print(" > Logging in as {} with password <TRUNCATED>".format(config.USERNAME))
 
     # Then login. This can be done every time, or use persisted with to_file.
-    mastodon.log_in(
-        config.USERNAME,
-        config.PASSWORD,
+#    mastodon.log_in(
+#        config.USERNAME,
+#        config.PASSWORD,
         # to_file = 'hashtaggamedev_usercred.secret'
-    )
+ #   )
 
     print(" > Successfully logged in")
     print(" > Fetching account data")
@@ -56,7 +59,7 @@ def run():
                 statuses = mastodon.timeline_hashtag(tag, local=False, limit=TIMELINE_DEPTH_LIMIT)
             except:
                 print(" ! Network error while attempting to fetch statuses. Trying again...")
-                time.sleep(30)
+                time.sleep(5)
                 continue
 
             # Sleep momentarily so we don't get rate limited.
@@ -71,13 +74,13 @@ def run():
                     # Boost and favorite the new status
                     print('   * Boosting new toot by {} using tag #{} viewable at: {}'.format(
                         status.account.username, tag, status.url))
-                    mastodon.status_reblog(status.id)
+                    mastodon.status_reblog(status.id, visibility="public")
                     mastodon.status_favourite(status.id)
-
-        # Sleep for a bit and then try again
-        print(" > Sleeping for {} minutes".format(TIME_TO_SLEEP // 60))
-        print("--------------------------")
-        time.sleep(TIME_TO_SLEEP)
+        sys.exit()
+#        # Sleep for a bit and then try again
+#        print(" > Sleeping for {} minutes".format(TIME_TO_SLEEP // 60))
+#        print("--------------------------")
+#        time.sleep(TIME_TO_SLEEP)
 
 
 def setup_client_cred_file():
